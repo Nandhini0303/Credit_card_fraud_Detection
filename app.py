@@ -1,3 +1,4 @@
+!pip install joblib
 import streamlit as st
 import pandas as pd
 import numpy as np
@@ -55,3 +56,4 @@ if submit:
         st.success("✅ Transaction is Valid")
     
     st.write(f"**Fraud Probability:** {proba:.4f}")
+
