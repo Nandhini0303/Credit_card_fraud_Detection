@@ -7,7 +7,7 @@ import joblib
 # -------------------------------
 # Load model
 # -------------------------------
-model = joblib.load("model_xgb.pkl")
+model = joblib.load("xgboost_fraud_model.pkl")
 
 st.title("💳 Credit Card Fraud Detection App")
 st.write("Use this app to detect fraud transactions using XGBoost model.")
@@ -81,4 +81,5 @@ if uploaded_file:
             file_name="fraud_predictions.csv",
             mime="text/csv"
         )
+
 
