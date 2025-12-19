@@ -5,56 +5,80 @@ import numpy as np
 import joblib
 
 # -------------------------------
-# Load Model and Scaler
+# Load model
 # -------------------------------
-st.title("💳 Credit Card Fraud Detection Dashboard")
+model = joblib.load("model_xgb.pkl")
 
-try:
-    model = joblib.load("xgboost_fraud_model.pkl")
-    scaler = joblib.load("scaler.pkl")
-    st.success("Model and Scaler Loaded Successfully!")
-except:
-    st.error("Model or Scaler not found! Please place them in the same folder as app.py")
+st.title("💳 Credit Card Fraud Detection App")
+st.write("Use this app to detect fraud transactions using XGBoost model.")
 
-# -------------------------------
-# Input Form for all features
-# -------------------------------
-st.header("Enter Transaction Details")
+# ================================================================
+#                1.   Single Transaction Prediction
+# ================================================================
+st.header("🔹 Single Transaction Prediction")
 
+# Read input feature names from model training
 feature_names = [
-    'Time', 'V1', 'V2', 'V3', 'V4', 'V5', 'V6', 'V7', 'V8', 'V9',
-    'V10', 'V11', 'V12', 'V13', 'V14', 'V15', 'V16', 'V17', 'V18', 'V19',
-    'V20', 'V21', 'V22', 'V23', 'V24', 'V25', 'V26', 'V27', 'V28', 'Amount'
+    "Time",
+    "V1","V2","V3","V4","V5","V6","V7","V8","V9",
+    "V10","V11","V12","V13","V14","V15","V16","V17","V18","V19",
+    "V20","V21","V22","V23","V24","V25","V26","V27","V28",
+    "Amount"
 ]
 
-inputs = {}
+user_values = []
 
-with st.form("fraud_form"):
-    for f in feature_names:
-        inputs[f] = st.number_input(f"Enter value for {f}", value=0.0)
-    
-    submit = st.form_submit_button("Predict")
+for feature in feature_names:
+    val = st.number_input(f"Enter {feature}", value=0.0)
+    user_values.append(val)
 
-# -------------------------------
-# Prediction
-# -------------------------------
-if submit:
-    input_df = pd.DataFrame([inputs])
-    
-    # Scale input
-    input_scaled = scaler.transform(input_df)
-    
-    # Predict
-    pred = model.predict(input_scaled)[0]
-    proba = model.predict_proba(input_scaled)[0][1]
+if st.button("Predict Single Transaction"):
+    input_array = np.array(user_values).reshape(1, -1)
+    pred = model.predict(input_array)[0]
 
-    st.subheader("🔍 Prediction Result")
-    
+    st.subheader("🔍 Prediction Result:")
     if pred == 1:
-        st.error("🚨 Fraudulent Transaction Detected!")
+        st.error("🚨 Fraud Detected!")
     else:
-        st.success("✅ Transaction is Valid")
-    
-    st.write(f"**Fraud Probability:** {proba:.4f}")
+        st.success("✅ Normal Transaction")
 
+
+# ================================================================
+#                2.   BULK CSV Prediction
+# ================================================================
+st.header("📁 Upload CSV for Bulk Prediction")
+
+uploaded_file = st.file_uploader("Upload CSV file", type=["csv"])
+
+if uploaded_file:
+    df = pd.read_csv(uploaded_file)
+
+    st.write("### 📄 Uploaded Data Preview")
+    st.dataframe(df.head())
+
+    # Check if all required columns exist
+    missing = [col for col in feature_names if col not in df.columns]
+
+    if missing:
+        st.error(f"❌ Missing columns in your CSV: {missing}")
+    else:
+        # Predict
+        predictions = model.predict(df[feature_names])
+
+        df["Prediction"] = predictions
+        df["Result"] = df["Prediction"].apply(lambda x: "Fraud" if x == 1 else "Normal")
+
+        st.success("✅ Prediction Completed!")
+
+        st.write("### 🔍 Prediction Output")
+        st.dataframe(df)
+
+        # Download predictions
+        csv_output = df.to_csv(index=False).encode('utf-8')
+        st.download_button(
+            label="⬇️ Download Prediction File",
+            data=csv_output,
+            file_name="fraud_predictions.csv",
+            mime="text/csv"
+        )
 
